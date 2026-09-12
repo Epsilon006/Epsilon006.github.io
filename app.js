@@ -10,8 +10,7 @@
   const fogLayer = document.createElement('canvas');
   const paint = fogLayer.getContext('2d');
   const close = document.querySelector('#close');
-  const continueProfile = document.querySelector('#continue-profile');
-  const profileUrl = 'https://github.com/Epsilon006';
+  const reopen = document.querySelector('#reopen');
   const rest = document.querySelector('#rest');
   const pauseButton = document.querySelector('#pause');
   const rainInput = document.querySelector('#rain');
@@ -130,18 +129,11 @@
   glass.style.touchAction='pan-y';
   function setClosed(value){
     closed=value;release();glass.classList.toggle('closed',value);glass.inert=value;document.body.classList.toggle('is-closed',value);rest.hidden=!value;
-    if(value){inside=false;continueProfile.focus();announce('The glass is opening onto the GitHub profile.');}
+    if(value){inside=false;reopen.focus();announce('The glass is closed. The rain remains.');}
     else {resize();close.focus();announce('The glass is open again.');}
   }
-  function enterProfile(event){
-    if(event)event.preventDefault();
-    if(closed)return;
-    setClosed(true);
-    setTimeout(()=>location.assign(profileUrl),reduced.matches?80:900);
-  }
-  document.querySelectorAll('[data-enter-profile]').forEach(link=>link.addEventListener('click',enterProfile));
-  close.addEventListener('click',enterProfile);
-  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!closed)enterProfile(event);});
+  close.addEventListener('click',()=>setClosed(true));reopen.addEventListener('click',()=>setClosed(false));
+  document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!closed)setClosed(true);});
   document.querySelector('#reset').addEventListener('click',()=>{resetFog();announce('The mist has settled again.');});
   pauseButton.addEventListener('click',()=>{paused=!paused;syncPause();});
   rainInput.addEventListener('input',()=>{rain=+rainInput.value/100;if(paused){drawWeather(0);drawNearRain();}});

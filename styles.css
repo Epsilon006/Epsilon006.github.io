@@ -17,7 +17,3 @@
 /* English typography and mobile headline wrapping. */
 h1,.rest p{font-family:Georgia,"Times New Roman",serif;letter-spacing:-.025em}.description{letter-spacing:.025em}.rest p{letter-spacing:.01em}
 @media(max-width:760px){h1 span{display:block}.hint{font-size:8px;letter-spacing:0}.controls{gap:10px;font-size:9px}.controls input[type=range]{width:55px}.english-title{font-size:19px}}
-
-/* The closed pane becomes a doorway to the original GitHub profile. */
-.rest a{display:inline-flex;align-items:center;background:#cbe5d50d;border:1px solid #cbe5d544;border-radius:30px;padding:13px 24px;font-size:12px;backdrop-filter:blur(12px)}
-.rest a:hover{background:#cbe5d51d}.rest a span{margin-left:20px}
