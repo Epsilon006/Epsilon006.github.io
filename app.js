@@ -18,6 +18,8 @@
   let paused = reduced.matches, closed = false, dragging = false, inside = false;
   let w = 0, h = 0, gw = 0, gh = 0, ratio = 1, frame = 0, last = 0, elapsed = 0, lastRipple = 0;
   let rain = +rainInput.value / 100, drops = [], beads = [], ripples = [];
+  let weatherTime = 0, splashBudget = 0;
+  function waterline(){const scale=Math.max(w/1672,h/941);return (h-941*scale)/2+535*scale;}
   const pointer = {x:.65, y:.45, fx:0, fy:0, sx:.5, sy:.5, previous:null};
   const random = (a,b) => a + Math.random() * (b-a);
   function announce(text) { document.querySelector('#announcement').textContent = text; }
@@ -55,41 +57,63 @@
       g.addColorStop(0,'rgba(0,0,0,.48)');g.addColorStop(1,'transparent');fog.fillStyle=g;
       fog.fillRect(pointer.fx-r,pointer.fy-r,r*2,r*2);fog.globalCompositeOperation='source-over';
     }
-    // Condensation sits on the same pane as the content; wiped areas lose the beads too.
-    fog.save();fog.globalCompositeOperation='source-atop';
-    for(const b of beads){fog.beginPath();fog.ellipse(b.x,b.y,b.r*.65,b.r*1.2,-.15,0,Math.PI*2);fog.strokeStyle='rgba(231,255,247,.3)';fog.lineWidth=.6;fog.stroke();}
-    fog.restore();
+
   }
   function resize() {
     ratio=Math.min(devicePixelRatio||1,1.75); w=innerWidth;h=innerHeight;gw=glass.clientWidth;gh=glass.clientHeight;
     for(const [c,context,cw,ch] of [[weather,ctx,w,h],[mist,fog,gw,gh],[fogLayer,paint,gw,gh],[paneRain,near,gw,gh]]) {
       c.width=Math.round(cw*ratio);c.height=Math.round(ch*ratio);context.setTransform(ratio,0,0,ratio,0,0);
     }
-    drops=Array.from({length:160},()=>({x:random(0,w),y:random(-h,h),z:random(.3,1),speed:random(430,850)}));
-    beads=Array.from({length:100},()=>({x:random(gw*.42,gw),y:random(0,gh),r:random(.8,2.6)}));
-    resetFog();drawWeather(0);drawNearRain();
+    drops=Array.from({length:Math.min(480,Math.max(180,Math.round(w*h/4200)))},()=>({x:random(-50,w+50),y:random(-h,h),z:random(.15,1),speed:random(650,1100),phase:random(0,6.28)}));
+    beads=Array.from({length:Math.min(90,Math.round(gw/16))},()=>({x:random(0,gw),y:random(0,gh),r:random(.7,2.4),speed:random(3,15),phase:random(0,6.28)}));
+    ripples=[];resetFog();drawWeather(0);drawNearRain(0);
   }
-  function ripple(x,y,power=1) {ripples.push({x,y,r:3,life:1,power});if(ripples.length>45)ripples.shift();}
+  function ripple(x,y,power=1) {
+    const horizon=waterline();
+    const depth=Math.max(.03,Math.min(1,(y-horizon)/Math.max(1,h-horizon)));
+    ripples.push({x,y,age:0,duration:random(.65,1.3),max:random(12,30)*(.15+depth*.85)*power,depth,phase:random(0,6.28)});
+    if(ripples.length>100)ripples.shift();
+  }
   function drawWeather(dt) {
-    ctx.clearRect(0,0,w,h);ctx.lineCap='round';
-    const wind=(pointer.sx-.5)*110-35;
+    weatherTime+=dt;ctx.clearRect(0,0,w,h);ctx.lineCap='round';
+    const wind=(pointer.sx-.5)*150-38+Math.sin(weatherTime*.6)*10;
     const count=Math.round(drops.length*rain);
     for(let i=0;i<count;i++){
-      const d=drops[i];d.y+=d.speed*d.z*dt;d.x+=wind*d.z*dt;
-      if(d.y>h+40){d.y=-40;d.x=random(-50,w+50);}if(d.x<-60)d.x=w+40;if(d.x>w+60)d.x=-40;
-      ctx.strokeStyle=`rgba(191,220,215,${.08+d.z*.2})`;ctx.lineWidth=d.z*.8;
-      ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x+wind*.028,d.y+18*d.z);ctx.stroke();
+      const d=drops[i];const speed=d.speed*(.38+d.z*.8);
+      d.y+=speed*dt;d.x+=(wind+Math.sin(weatherTime+d.phase)*7)*dt;
+      if(d.y>h+55){d.y=random(-100,-20);d.x=random(-80,w+80);}
+      if(d.x<-100)d.x=w+70;if(d.x>w+100)d.x=-70;
+      const length=(8+d.z*d.z*34),slant=wind/speed*length;
+      ctx.strokeStyle='rgba(193,215,220,'+(.035+d.z*d.z*.14)+')';ctx.lineWidth=.4+d.z*.75;
+      ctx.beginPath();ctx.moveTo(d.x-slant,d.y-length);ctx.lineTo(d.x,d.y);ctx.stroke();
+      if(d.z>.86){ctx.strokeStyle='rgba(218,234,235,.19)';ctx.beginPath();ctx.moveTo(d.x-slant*.12,d.y-length*.12);ctx.lineTo(d.x,d.y);ctx.stroke();}
     }
-    if(dt && rain>0 && Math.random()<rain*.34)ripple(random(0,w),random(h*.61,h),random(.3,.8));
-    for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.r+=dt*32;r.life-=dt*.46;
-      if(r.life<=0){ripples.splice(i,1);continue;}
-      ctx.strokeStyle=`rgba(179,220,207,${r.life*.3*r.power})`;ctx.lineWidth=.8;
-      for(let j=0;j<2;j++){ctx.beginPath();ctx.ellipse(r.x,r.y,r.r*(1+j*.35)*2.4,r.r*(1+j*.35)*.42,0,0,Math.PI*2);ctx.stroke();}
+    const horizon=Math.max(0,Math.min(h-1,waterline()));
+    splashBudget+=dt*rain*Math.min(65,w/25);
+    while(splashBudget>=1){ripple(random(0,w),horizon+(h-horizon)*Math.pow(Math.random(),1.4));splashBudget--;}
+    for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.age+=dt;const progress=r.age/r.duration;
+      if(progress>=1){ripples.splice(i,1);continue;}
+      const radius=1+r.max*progress,alpha=Math.sin(Math.PI*Math.min(1,progress*1.4))*(1-progress)*(.1+r.depth*.12);
+      ctx.lineWidth=.45+r.depth*.35;ctx.strokeStyle='rgba(191,219,215,'+Math.max(0,alpha)+')';
+      const flatten=.12+r.depth*.18;
+      ctx.beginPath();ctx.ellipse(r.x,r.y,radius,radius*flatten,0,r.phase,r.phase+Math.PI*1.65);ctx.stroke();
+      if(progress>.18){ctx.strokeStyle='rgba(190,218,214,'+Math.max(0,alpha*.4)+')';ctx.beginPath();ctx.ellipse(r.x,r.y,radius*.66,radius*.66*flatten,0,r.phase+1,r.phase+5.4);ctx.stroke();}
+      if(progress<.13&&r.depth>.5){ctx.strokeStyle='rgba(204,225,221,'+(.13*(1-progress/.13))+')';ctx.beginPath();ctx.moveTo(r.x,r.y);ctx.lineTo(r.x+1,r.y-3*r.depth);ctx.stroke();}
     }
   }
-  function drawNearRain() {
-    near.clearRect(0,0,gw,gh);
-    if (!closed) {const rect=glass.getBoundingClientRect();near.drawImage(weather,-rect.left,-rect.top,w,h);}
+  function drawNearRain(dt=0) {
+    near.clearRect(0,0,gw,gh);if(closed)return;
+    const rect=glass.getBoundingClientRect();
+    near.globalAlpha=.2;near.drawImage(weather,-rect.left,-rect.top,w,h);near.globalAlpha=1;
+    for(const b of beads){
+      const sliding=b.r>1.4&&rain>0;
+      if(sliding){b.y+=dt*b.speed*rain*(.35+Math.max(0,Math.sin(weatherTime*.6+b.phase))*1.7);b.x+=Math.sin(weatherTime*.4+b.phase)*dt*.9;}
+      if(b.y>gh+10){b.y=-10;b.x=random(0,gw);}
+      if(sliding){const tail=10+b.r*8;const g=near.createLinearGradient(b.x,b.y-tail,b.x,b.y);g.addColorStop(0,'rgba(194,225,224,0)');g.addColorStop(1,'rgba(194,225,224,.12)');near.strokeStyle=g;near.lineWidth=b.r*.5;near.beginPath();near.moveTo(b.x,b.y-tail);near.quadraticCurveTo(b.x+Math.sin(b.phase)*2,b.y-tail/2,b.x,b.y);near.stroke();}
+      near.fillStyle='rgba(5,29,35,.2)';near.beginPath();near.ellipse(b.x,b.y,b.r*.75,b.r*1.15,0,0,Math.PI*2);near.fill();
+      near.strokeStyle='rgba(203,230,226,.36)';near.lineWidth=.65;near.beginPath();near.ellipse(b.x,b.y,b.r*.75,b.r*1.15,0,.2,2.4);near.stroke();
+      near.fillStyle='rgba(225,245,239,.45)';near.beginPath();near.arc(b.x-b.r*.2,b.y+b.r*.45,Math.max(.35,b.r*.2),0,Math.PI*2);near.fill();
+    }
   }
   function tick(t) {
     frame=0; const dt=Math.min((t-last)/1000||.016,.04);last=t;elapsed+=dt;
@@ -97,7 +121,7 @@
     document.documentElement.style.setProperty('--mx',`${(pointer.sx-.5)*22}px`);
     document.documentElement.style.setProperty('--my',`${(pointer.sy-.5)*14}px`);
     glass.style.setProperty('--ry',`${(pointer.sx-.5)*.8}deg`);glass.style.setProperty('--rx',`${(.5-pointer.sy)*.6}deg`);
-    drawWeather(dt);drawNearRain();
+    drawWeather(dt);drawNearRain(dt);
     if(!closed){if(elapsed>.18){paint.globalCompositeOperation="destination-out";paint.fillStyle="rgba(0,0,0,.006)";paint.fillRect(0,0,gw,gh);fillFog(.008);elapsed=0;}drawFog();}
     schedule();
   }
@@ -115,7 +139,7 @@
       for(let i=1;i<=steps;i++)erase(prev.x+(pointer.fx-prev.x)*i/steps,prev.y+(pointer.fy-prev.y)*i/steps,65,.65);
       pointer.previous={x:pointer.fx,y:pointer.fy};
     }
-    if(!paused&&performance.now()-lastRipple>85){ripple(event.clientX,h*.64+pointer.y*h*.32,.8);lastRipple=performance.now();}
+    if(!paused&&performance.now()-lastRipple>140){ripple(event.clientX,waterline()+(h-waterline())*(.15+pointer.y*.8),1.15);lastRipple=performance.now();}
     if(paused&&!closed)drawFog();
   },{passive:true});
   glass.addEventListener('pointerdown',event=>{
