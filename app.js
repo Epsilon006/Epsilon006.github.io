@@ -126,7 +126,7 @@
     schedule();
   }
   function schedule(){if(!paused&&!document.hidden&&!frame)frame=requestAnimationFrame(tick);}
-  function syncPause(){pauseButton.setAttribute('aria-pressed',String(paused));pauseButton.textContent=paused?'Resume motion':'Pause motion';if(paused){cancelAnimationFrame(frame);frame=0;}else{last=performance.now();schedule();}}
+  function syncPause(){window.rainSoundscape.setPaused(paused);pauseButton.setAttribute('aria-pressed',String(paused));pauseButton.textContent=paused?'Resume motion':'Pause motion';if(paused){cancelAnimationFrame(frame);frame=0;}else{last=performance.now();schedule();}}
   function locate(event){
     pointer.x=Math.max(0,Math.min(1,event.clientX/w));pointer.y=Math.max(0,Math.min(1,event.clientY/h));
     const rect=glass.getBoundingClientRect();pointer.fx=(event.clientX-rect.left)*gw/rect.width;pointer.fy=(event.clientY-rect.top)*gh/rect.height;
@@ -160,11 +160,12 @@
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!closed)setClosed(true);});
   document.querySelector('#reset').addEventListener('click',()=>{resetFog();announce('The mist has settled again.');});
   pauseButton.addEventListener('click',()=>{paused=!paused;syncPause();});
-  rainInput.addEventListener('input',()=>{rain=+rainInput.value/100;if(paused){drawWeather(0);drawNearRain();}});
+  rainInput.addEventListener('input',()=>{rain=+rainInput.value/100;window.rainSoundscape.setRain(rain);if(paused){drawWeather(0);drawNearRain();}});
   reduced.addEventListener('change',event=>{paused=event.matches;syncPause();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(frame);frame=0;}else{last=performance.now();schedule();}});
   let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resize,100);});
-  resize();syncPause();
+  window.rainSoundscape.setRain(rain);resize();syncPause();
 })();
+
 
 
