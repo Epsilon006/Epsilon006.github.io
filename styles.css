@@ -17,3 +17,7 @@
 /* English typography and mobile headline wrapping. */
 h1,.rest p{font-family:Georgia,"Times New Roman",serif;letter-spacing:-.025em}.description{letter-spacing:.025em}.rest p{letter-spacing:.01em}
 @media(max-width:760px){h1 span{display:block}.hint{font-size:8px;letter-spacing:0}.controls{gap:10px;font-size:9px}.controls input[type=range]{width:55px}.english-title{font-size:19px}}
+
+/* Repository labels reflect the current public forks. */
+.project-detail{min-width:0}.projects strong{display:flex;align-items:center;gap:10px}.repo-kind{font:8px/1.2 Consolas,monospace;letter-spacing:.02em;border:1px solid #b8d9c944;border-radius:3px;padding:2px 5px;color:#aecabd}.projects small{line-height:1.4}.projects a{gap:14px}
+@media(max-height:850px) and (min-width:761px){.content{padding-top:22px}h1{margin-top:16px}.english-title{margin-bottom:10px}.description{margin-bottom:12px}.profile-link{padding-bottom:8px}.projects{margin-top:14px}.projects a{padding:7px 0}}
