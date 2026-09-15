@@ -36,12 +36,13 @@
     <div class="character-note" aria-hidden="true"><span class="tiny-cross">+</span><span>Across the glass<br><b>HATSUNE MIKU</b></span></div>
     <footer class="toolbar">
       <span class="hint"><span class="touch-symbol">◎</span> Move to stir the rain · Drag to clear the mist</span>
-      <div class="controls"><label for="rain">Rain</label><input id="rain" type="range" min="0" max="100" value="65" aria-label="Rain"><button data-sound aria-pressed="false">Sound off</button><button id="reset" title="Let the mist settle again">Reset mist</button><button id="pause" aria-pressed="false">Pause motion</button></div>
+      <div class="controls"><span class="rain-control"><label for="rain">Rain</label><input id="rain" type="range" min="0" max="100" value="65" aria-label="Rain"><output id="rain-state" for="rain">Steady rain · 65%</output></span><button data-sound aria-pressed="false">Sound off</button><span class="volume-control"><label for="volume">Volume</label><input id="volume" type="range" min="0" max="100" value="55" aria-label="Sound volume"></span><a class="audio-credit" href="./audio-credits.html" target="_blank" rel="noreferrer" aria-label="Sound recording credits">Credits</a><button id="reset" title="Let the mist settle again">Reset mist</button><button id="pause" aria-pressed="false">Pause motion</button></div>
     </footer>
   </main>
   <div id="rest" class="rest" hidden><span class="rest-overline">ONLY THE RAIN REMAINS</span><p>Let the world fall quiet.</p><button id="reopen">Reopen the glass <span>↗</span></button><button data-sound aria-pressed="false">Sound off</button></div>
   <div class="outside-footer" aria-hidden="true"><span>01 / RAIN & WATER</span><span class="footer-center">ONE GESTURE. TWO WORLDS.</span><span>02 / MIST & MIKU</span></div>
   <div class="sr-only" role="status" id="announcement"></div>
+  <script src="./weather-model.js"></script>
   <script src="./soundscape.js"></script>
   <script src="./app.js"></script>
 </body>

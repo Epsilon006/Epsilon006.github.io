@@ -19,6 +19,7 @@
   let w = 0, h = 0, gw = 0, gh = 0, ratio = 1, frame = 0, last = 0, elapsed = 0, lastRipple = 0;
   let rain = +rainInput.value / 100, drops = [], beads = [], ripples = [];
   let weatherTime = 0, splashBudget = 0;
+  let targetRain = rain, weatherState = RainWeather.sample(rain);
   function waterline(){const scale=Math.max(w/1672,h/941);return (h-941*scale)/2+535*scale;}
   const pointer = {x:.65, y:.45, fx:0, fy:0, sx:.5, sy:.5, previous:null};
   const random = (a,b) => a + Math.random() * (b-a);
@@ -64,7 +65,7 @@
     for(const [c,context,cw,ch] of [[weather,ctx,w,h],[mist,fog,gw,gh],[fogLayer,paint,gw,gh],[paneRain,near,gw,gh]]) {
       c.width=Math.round(cw*ratio);c.height=Math.round(ch*ratio);context.setTransform(ratio,0,0,ratio,0,0);
     }
-    drops=Array.from({length:Math.min(480,Math.max(180,Math.round(w*h/4200)))},()=>({x:random(-50,w+50),y:random(-h,h),z:random(.15,1),speed:random(650,1100),phase:random(0,6.28)}));
+    drops=Array.from({length:Math.min(1400,Math.max(500,Math.round(w*h/1500)))},()=>({x:random(-50,w+50),y:random(-h,h),z:random(.15,1),speed:random(650,1100),phase:random(0,6.28)}));
     beads=Array.from({length:Math.min(90,Math.round(gw/16))},()=>({x:random(0,gw),y:random(0,gh),r:random(.7,2.4),speed:random(3,15),phase:random(0,6.28)}));
     ripples=[];resetFog();drawWeather(0);drawNearRain(0);
   }
@@ -77,19 +78,19 @@
   function drawWeather(dt) {
     weatherTime+=dt;ctx.clearRect(0,0,w,h);ctx.lineCap='round';
     const wind=(pointer.sx-.5)*150-38+Math.sin(weatherTime*.6)*10;
-    const count=Math.round(drops.length*rain);
+    const count=Math.round(drops.length*weatherState.density);
     for(let i=0;i<count;i++){
-      const d=drops[i];const speed=d.speed*(.38+d.z*.8);
+      const d=drops[i];const speed=d.speed*(.38+d.z*.8)*weatherState.speed;
       d.y+=speed*dt;d.x+=(wind+Math.sin(weatherTime+d.phase)*7)*dt;
       if(d.y>h+55){d.y=random(-100,-20);d.x=random(-80,w+80);}
       if(d.x<-100)d.x=w+70;if(d.x>w+100)d.x=-70;
-      const length=(8+d.z*d.z*34),slant=wind/speed*length;
+      const length=(8+d.z*d.z*34)*weatherState.length,slant=wind/speed*length;
       ctx.strokeStyle='rgba(193,215,220,'+(.035+d.z*d.z*.14)+')';ctx.lineWidth=.4+d.z*.75;
       ctx.beginPath();ctx.moveTo(d.x-slant,d.y-length);ctx.lineTo(d.x,d.y);ctx.stroke();
       if(d.z>.86){ctx.strokeStyle='rgba(218,234,235,.19)';ctx.beginPath();ctx.moveTo(d.x-slant*.12,d.y-length*.12);ctx.lineTo(d.x,d.y);ctx.stroke();}
     }
     const horizon=Math.max(0,Math.min(h-1,waterline()));
-    splashBudget+=dt*rain*Math.min(65,w/25);
+    splashBudget+=dt*weatherState.density*Math.min(110,w/16);
     while(splashBudget>=1){ripple(random(0,w),horizon+(h-horizon)*Math.pow(Math.random(),1.4));splashBudget--;}
     for(let i=ripples.length-1;i>=0;i--){const r=ripples[i];r.age+=dt;const progress=r.age/r.duration;
       if(progress>=1){ripples.splice(i,1);continue;}
@@ -117,6 +118,7 @@
   }
   function tick(t) {
     frame=0; const dt=Math.min((t-last)/1000||.016,.04);last=t;elapsed+=dt;
+    rain=RainWeather.approach(rain,targetRain,dt);weatherState=RainWeather.sample(rain);window.rainSoundscape.setWeather(weatherState);
     pointer.sx+=(pointer.x-pointer.sx)*Math.min(1,dt*4);pointer.sy+=(pointer.y-pointer.sy)*Math.min(1,dt*4);
     document.documentElement.style.setProperty('--mx',`${(pointer.sx-.5)*22}px`);
     document.documentElement.style.setProperty('--my',`${(pointer.sy-.5)*14}px`);
@@ -160,11 +162,11 @@
   document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!closed)setClosed(true);});
   document.querySelector('#reset').addEventListener('click',()=>{resetFog();announce('The mist has settled again.');});
   pauseButton.addEventListener('click',()=>{paused=!paused;syncPause();});
-  rainInput.addEventListener('input',()=>{rain=+rainInput.value/100;window.rainSoundscape.setRain(rain);if(paused){drawWeather(0);drawNearRain();}});
+  rainInput.addEventListener('input',()=>{targetRain=+rainInput.value/100;const value=RainWeather.sample(targetRain);document.querySelector('#rain-state').textContent=value.label+' · '+rainInput.value+'%';rainInput.setAttribute('aria-valuetext',value.label+', '+rainInput.value+' percent');if(paused){rain=targetRain;weatherState=value;window.rainSoundscape.setWeather(value);drawWeather(0);drawNearRain();}});
   reduced.addEventListener('change',event=>{paused=event.matches;syncPause();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(frame);frame=0;}else{last=performance.now();schedule();}});
   let resizeTimer;window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(resize,100);});
-  window.rainSoundscape.setRain(rain);resize();syncPause();
+  window.rainSoundscape.setWeather(weatherState);resize();syncPause();
 })();
 
 
