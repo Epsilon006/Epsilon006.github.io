@@ -39,7 +39,7 @@
   }
   async function load() {
     const decoded = await Promise.all(['rain-light','rain-heavy','wood-thrush'].map(async name => {
-      const controller = new AbortController(), timeout = setTimeout(() => controller.abort(),30000);
+      const controller = new AbortController(), timeout = setTimeout(() => controller.abort(),120000);
       try {
         const response = await fetch('./assets/audio/'+name+'.mp3', {signal:controller.signal});
         if (!response.ok) throw new Error('Recording unavailable');
@@ -119,3 +119,4 @@
   };
   renderButtons();
 })();
+
